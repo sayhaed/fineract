@@ -1158,6 +1158,7 @@ public class SavingsAccount extends AbstractAuditableWithUTCDateTimeCustom<Long>
         if (backdatedTxnsAllowedTill) {
             addTransactionToExisting(transaction);
         } else {
+            this.accrualsForSavingsReverse(transactionDTO, backdatedTxnsAllowedTill);
             addTransaction(transaction);
         }
 
@@ -1293,6 +1294,7 @@ public class SavingsAccount extends AbstractAuditableWithUTCDateTimeCustom<Long>
         if (backdatedTxnsAllowedTill) {
             addTransactionToExisting(transaction);
         } else {
+            this.accrualsForSavingsReverse(transactionDTO, backdatedTxnsAllowedTill);
             addTransaction(transaction);
         }
 
@@ -3847,4 +3849,22 @@ public class SavingsAccount extends AbstractAuditableWithUTCDateTimeCustom<Long>
                 .map(transaction -> transaction.toSavingsAccountTransactionDetailsForPostingPeriod(this.currency, this.allowOverdraft))
                 .toList();
     }
+
+    public void accrualsForSavingsReverse(SavingsAccountTransactionDTO transactionDTO, final boolean backdatedTxnsAllowedTill) {
+        List<SavingsAccountTransaction> accountTransactionsSorted = null;
+
+        if (backdatedTxnsAllowedTill) {
+            accountTransactionsSorted = retrieveSortedTransactions();
+        } else {
+            accountTransactionsSorted = retrieveListOfTransactions();
+        }
+        for (final SavingsAccountTransaction transaction : accountTransactionsSorted) {
+            boolean typeTransaccionValidation = transaction.getTransactionType() == SavingsAccountTransactionType.ACCRUAL;
+            if (typeTransaccionValidation && (transaction.getDateOf().isAfter(transactionDTO.getTransactionDate())
+                    || transaction.getDateOf().isEqual(transactionDTO.getTransactionDate()))) {
+                transaction.reverse();
+            }
+        }
+    }
+
 }
