@@ -206,7 +206,10 @@ public class SavingsProductHelper {
         this.interestPostingPeriodType = ANNUAL;
         return this;
     }
-
+    public SavingsProductHelper withInterestCompoundingPeriodTypeAsAnnually() {
+        this.interestCompoundingPeriodType = ANNUAL;
+        return this;
+    }
     public SavingsProductHelper withInterestPostingPeriodTypeAsDaily() {
         this.interestPostingPeriodType = DAILY;
         return this;
@@ -291,6 +294,57 @@ public class SavingsProductHelper {
     public SavingsProductHelper withNominalAnnualInterestRate(BigDecimal interestRate) {
         this.nominalAnnualInterestRate = interestRate.toString();
         return this;
+    }
+
+    public SavingsProductHelper withSavingsReferenceAccountId(final String savingsReferenceAccountId) {
+        this.savingsReferenceAccountId = savingsReferenceAccountId;
+        return this;
+    }
+
+    public SavingsProductHelper withSavingsControlAccountId(final String savingsControlAccountId) {
+        this.savingsControlAccountId = savingsControlAccountId;
+        return this;
+    }
+
+    public SavingsProductHelper withInterestOnSavingsAccountId(final String interestOnSavingsAccountId) {
+        this.interestOnSavingsAccountId = interestOnSavingsAccountId;
+        return this;
+    }
+
+    public SavingsProductHelper withIncomeFromFeeAccountId(final String incomeFromFeeAccountId) {
+        this.incomeFromFeeAccountId = incomeFromFeeAccountId;
+        return this;
+    }
+
+    public SavingsProductHelper withInterestPayableAccountId(final String interestPayableAccountId) {
+        this.interestPayableAccountId = interestPayableAccountId;
+        return this;
+    }
+
+    public SavingsProductHelper withOverdraftPortfolioControlId(final String overdraftPortfolioControlId) {
+        this.overdraftPortfolioControlId = overdraftPortfolioControlId;
+        return this;
+    }
+
+    public SavingsProductHelper withInterestReceivableAccountId(final String interestReceivableAccountId) {
+        this.interestReceivableAccountId = interestReceivableAccountId;
+        return this;
+    }
+
+    public SavingsProductHelper withIncomeFromInterestId(final String incomeFromInterestId) {
+        this.incomeFromInterestId = incomeFromInterestId;
+        return this;
+    }
+
+    public BigDecimal getNominalAnnualInterestRate() {
+        return new BigDecimal(nominalAnnualInterestRate);
+    }
+
+    public BigDecimal getInterestCalculationDaysInYearType() {
+        return new BigDecimal(interestCalculationDaysInYearType);
+    }
+    public Integer getDecimalCurrency() {
+        return Integer.parseInt(DIGITS_AFTER_DECIMAL);
     }
 
     // TODO: Rewrite to use fineract-client instead!

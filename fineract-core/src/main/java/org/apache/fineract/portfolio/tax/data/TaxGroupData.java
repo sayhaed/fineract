@@ -51,5 +51,8 @@ public final class TaxGroupData implements Serializable {
     public static TaxGroupData template(final TaxGroupData taxGroupData, final Collection<TaxComponentData> taxComponents) {
         return new TaxGroupData(taxGroupData.id, taxGroupData.name, taxGroupData.taxAssociations, taxComponents);
     }
+    public Long getId() {
+        return id;
+    }
 
 }
