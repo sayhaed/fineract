@@ -221,7 +221,10 @@ public class SavingsProductHelper {
         this.interestPostingPeriodType = ANNUAL;
         return this;
     }
-
+    public SavingsProductHelper withInterestCompoundingPeriodTypeAsAnnually() {
+        this.interestCompoundingPeriodType = ANNUAL;
+        return this;
+    }
     public SavingsProductHelper withInterestPostingPeriodTypeAsDaily() {
         this.interestPostingPeriodType = DAILY;
         return this;
@@ -360,7 +363,6 @@ public class SavingsProductHelper {
     public BigDecimal getInterestCalculationDaysInYearType() {
         return new BigDecimal(interestCalculationDaysInYearType);
     }
-
     public Integer getDecimalCurrency() {
         return Integer.parseInt(DIGITS_AFTER_DECIMAL);
     }

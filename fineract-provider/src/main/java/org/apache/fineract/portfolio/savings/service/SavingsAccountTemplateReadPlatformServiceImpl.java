@@ -57,6 +57,7 @@ import org.apache.fineract.portfolio.savings.data.SavingsAccountSummaryData;
 import org.apache.fineract.portfolio.savings.data.SavingsAccountTransactionData;
 import org.apache.fineract.portfolio.savings.data.SavingsProductData;
 import org.apache.fineract.portfolio.tax.data.TaxGroupData;
+import org.apache.fineract.portfolio.tax.service.TaxReadPlatformService;
 import org.apache.fineract.useradministration.domain.AppUser;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -74,13 +75,13 @@ public class SavingsAccountTemplateReadPlatformServiceImpl implements SavingsAcc
     private final ChargeReadPlatformService chargeReadPlatformService;
 
     private final EntityDatatableChecksReadService entityDatatableChecksReadService;
-
+    private static TaxReadPlatformService readPlatformService;
     public SavingsAccountTemplateReadPlatformServiceImpl(final PlatformSecurityContext context, final JdbcTemplate jdbcTemplate,
             final ClientReadPlatformService clientReadPlatformService, final GroupReadPlatformService groupReadPlatformService,
             final SavingsProductReadPlatformService savingProductReadPlatformService,
             final StaffReadPlatformService staffReadPlatformService, final SavingsDropdownReadPlatformService dropdownReadPlatformService,
             final ChargeReadPlatformService chargeReadPlatformService,
-            final EntityDatatableChecksReadService entityDatatableChecksReadService, final ColumnValidator columnValidator) {
+            final EntityDatatableChecksReadService entityDatatableChecksReadService, TaxReadPlatformService readPlatformService, final ColumnValidator columnValidator) {
         this.context = context;
         this.jdbcTemplate = jdbcTemplate;
         this.clientReadPlatformService = clientReadPlatformService;
@@ -90,6 +91,7 @@ public class SavingsAccountTemplateReadPlatformServiceImpl implements SavingsAcc
         this.dropdownReadPlatformService = dropdownReadPlatformService;
         this.chargeReadPlatformService = chargeReadPlatformService;
         this.entityDatatableChecksReadService = entityDatatableChecksReadService;
+        this.readPlatformService = readPlatformService;
     }
 
     @Override
@@ -354,7 +356,7 @@ public class SavingsAccountTemplateReadPlatformServiceImpl implements SavingsAcc
             final String taxGroupName = rs.getString("taxGroupName");
             TaxGroupData taxGroupData = null;
             if (taxGroupId != null) {
-                taxGroupData = TaxGroupData.lookup(taxGroupId, taxGroupName);
+                taxGroupData = readPlatformService.retrieveTaxGroupWithTemplate(taxGroupId);
             }
 
             Long clientId = null;
