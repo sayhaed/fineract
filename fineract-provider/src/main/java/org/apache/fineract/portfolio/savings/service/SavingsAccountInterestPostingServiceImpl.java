@@ -47,12 +47,17 @@ import org.apache.fineract.portfolio.savings.domain.SavingsAccountTransactionDat
 import org.apache.fineract.portfolio.savings.domain.SavingsHelper;
 import org.apache.fineract.portfolio.savings.domain.interest.PostingPeriod;
 import org.apache.fineract.portfolio.tax.data.TaxComponentData;
+import org.apache.fineract.portfolio.tax.data.TaxGroupData;
+import org.apache.fineract.portfolio.tax.service.TaxReadPlatformService;
 import org.apache.fineract.portfolio.tax.service.TaxUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @RequiredArgsConstructor
 public class SavingsAccountInterestPostingServiceImpl implements SavingsAccountInterestPostingService {
 
     private final SavingsHelper savingsHelper;
+    @Autowired
+    private TaxReadPlatformService readPlatformService;
 
     @Override
     public SavingsAccountData postInterest(final MathContext mc, final LocalDate interestPostingUpToDate, final boolean isInterestTransfer,
@@ -101,6 +106,11 @@ public class SavingsAccountInterestPostingServiceImpl implements SavingsAccountI
                     savingsAccountData.updateTransactions(newPostingTransaction);
 
                     if (applyWithHoldTax) {
+                        TaxGroupData taxGroupData = null;
+                        taxGroupData = this.readPlatformService.retrieveTaxGroupWithTemplate(savingsAccountData.getTaxGroup().getId());
+                        if (taxGroupData != null){
+                            savingsAccountData.setTaxGroup(taxGroupData);
+                        }
                         createWithHoldTransaction(interestEarnedToBePostedForPeriod.getAmount(), interestPostingTransactionDate,
                                 savingsAccountData);
                     }
@@ -527,7 +537,7 @@ public class SavingsAccountInterestPostingServiceImpl implements SavingsAccountI
     }
 
     private boolean isWithHoldTaxApplicableForInterestPosting(final SavingsAccountData savingsAccountData) {
-        return this.withHoldTax(savingsAccountData) && this.depositAccountType(savingsAccountData).isSavingsDeposit();
+        return this.withHoldTax(savingsAccountData) && (this.depositAccountType(savingsAccountData).isSavingsDeposit() || this.depositAccountType(savingsAccountData).isFixedDeposit() || this.depositAccountType(savingsAccountData).isRecurringDeposit() );
     }
 
     private boolean withHoldTax(final SavingsAccountData savingsAccountData) {
