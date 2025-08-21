@@ -1044,7 +1044,7 @@ public class SavingsAccount extends AbstractAuditableWithUTCDateTimeCustom<Long>
                 }
                 if (!calculateInterest || transaction.getId() == null) {
                     transaction.setOverdraftAmount(overdraftAmount);
-                } else if (!MathUtil.isEqualTo(overdraftAmount, transaction.getOverdraftAmount(this.currency))) {
+                } else if (!MathUtil.isEqualTo(overdraftAmount, transaction.getOverdraftAmount(this.currency)) && !transaction.isAccrual()) {
                     SavingsAccountTransaction accountTransaction = SavingsAccountTransaction.copyTransaction(transaction);
                     if (transaction.isChargeTransaction()) {
                         Set<SavingsAccountChargePaidBy> chargesPaidBy = transaction.getSavingsAccountChargesPaid();
@@ -3883,11 +3883,10 @@ public class SavingsAccount extends AbstractAuditableWithUTCDateTimeCustom<Long>
             }
         }
     }
-
+    
     public List<SavingsAccountTransactionDetailsForPostingPeriod> toSavingsAccountTransactionDetailsForPostingPeriodList() {
         return retreiveOrderedNonInterestPostingTransactions().stream()
                 .map(transaction -> transaction.toSavingsAccountTransactionDetailsForPostingPeriod(this.currency, this.allowOverdraft))
                 .toList();
     }
-
 }
