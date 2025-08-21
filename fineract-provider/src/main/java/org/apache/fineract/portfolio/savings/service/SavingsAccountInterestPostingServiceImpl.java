@@ -486,14 +486,12 @@ public class SavingsAccountInterestPostingServiceImpl implements SavingsAccountI
     }
 
     protected void recalculateDailyBalances(final Money openingAccountBalance, final LocalDate interestPostingUpToDate,
-                                            final boolean backdatedTxnsAllowedTill, final SavingsAccountData savingsAccountData) {
+            final boolean backdatedTxnsAllowedTill, final SavingsAccountData savingsAccountData) {
 
         Money runningBalance = openingAccountBalance.copy();
 
         List<SavingsAccountTransactionData> accountTransactionsSorted = retrieveListOfTransactions(savingsAccountData);
         boolean isTransactionsModified = false;
-
-        final MonetaryCurrency currency = MonetaryCurrency.fromCurrencyData(savingsAccountData.getCurrency());
 
         for (final SavingsAccountTransactionData transaction : accountTransactionsSorted) {
             if (transaction.isReversed() || transaction.isReversalTransaction()) {
@@ -600,7 +598,7 @@ public class SavingsAccountInterestPostingServiceImpl implements SavingsAccountI
         SavingsAccountTransactionData postingTransation = null;
         List<SavingsAccountTransactionData> trans = savingsAccountData.getSavingsAccountTransactionData();
         for (final SavingsAccountTransactionData transaction : trans) {
-            if ((transaction.isInterestPostingAndNotReversed() || transaction.isOverdraftInterestAndNotReversed())
+            if ((transaction.isInterestPostingAndNotReversed() && transaction.isOverdraftInterestAndNotReversed())
                     && transaction.occursOn(postingDate) && !transaction.isReversalTransaction()) {
                 postingTransation = transaction;
                 break;
