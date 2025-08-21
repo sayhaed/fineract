@@ -313,11 +313,6 @@ public final class PostingPeriod {
             interestEarned = interestEarned.add(interestUnrounded);
         }
 
-        if (interestEarned.compareTo(BigDecimal.ZERO) < 0) {
-            this.overdraftInterest = true;
-            interestEarned = interestEarned.negate();
-        }
-
         this.interestEarnedUnrounded = interestEarned;
         this.interestEarnedRounded = Money.of(this.currency, this.interestEarnedUnrounded);
 

@@ -91,32 +91,32 @@ public class SavingsAccountInterestPostingServiceImpl implements SavingsAccountI
 
                 if (postingTransaction == null) {
                     SavingsAccountTransactionData newPostingTransaction;
-                    if (!isOverdraft) {
+                    if (interestEarnedToBePostedForPeriod.isGreaterThanOrEqualTo(Money.zero(savingsAccountData.getCurrency()))) {
                         newPostingTransaction = SavingsAccountTransactionData.interestPosting(savingsAccountData,
                                 interestPostingTransactionDate, interestEarnedToBePostedForPeriod, interestPostingPeriod.isUserPosting());
                     } else {
                         newPostingTransaction = SavingsAccountTransactionData.overdraftInterest(savingsAccountData,
-                                interestPostingTransactionDate, interestEarnedToBePostedForPeriod, interestPostingPeriod.isUserPosting(),
-                                true);
+                                interestPostingTransactionDate, interestEarnedToBePostedForPeriod.negated(),
+                                interestPostingPeriod.isUserPosting(), isOverdraft);
                     }
+
                     savingsAccountData.updateTransactions(newPostingTransaction);
+
                     if (applyWithHoldTax) {
                         createWithHoldTransaction(interestEarnedToBePostedForPeriod.getAmount(), interestPostingTransactionDate,
                                 savingsAccountData);
                     }
                     recalucateDailyBalanceDetails = true;
                 } else {
-                    boolean correctionRequired;
+                    boolean correctionRequired = false;
                     if (postingTransaction.isInterestPostingAndNotReversed()) {
                         correctionRequired = postingTransaction.hasNotAmount(interestEarnedToBePostedForPeriod);
                     } else {
-                        correctionRequired = postingTransaction.hasNotAmount(interestEarnedToBePostedForPeriod);
-                    }
-                    if (DateUtils.isBefore(interestPostingTransactionDate, interestPostingUpToDate)) {
-                        correctionRequired = false;
+                        correctionRequired = postingTransaction.hasNotAmount(interestEarnedToBePostedForPeriod.negated());
                     }
                     if (correctionRequired) {
                         boolean applyWithHoldTaxForOldTransaction = false;
+                        postingTransaction.reverse();
 
                         final SavingsAccountTransactionData withholdTransaction = findTransactionFor(interestPostingTransactionDate,
                                 withholdTransactions);
@@ -126,16 +126,16 @@ public class SavingsAccountInterestPostingServiceImpl implements SavingsAccountI
                             applyWithHoldTaxForOldTransaction = true;
                         }
                         SavingsAccountTransactionData newPostingTransaction;
-                        if (!isOverdraft) {
+                        if (interestEarnedToBePostedForPeriod.isGreaterThanOrEqualTo(Money.zero(savingsAccountData.getCurrency()))) {
                             newPostingTransaction = SavingsAccountTransactionData.interestPosting(savingsAccountData,
                                     interestPostingTransactionDate, interestEarnedToBePostedForPeriod,
                                     interestPostingPeriod.isUserPosting());
-
                         } else {
                             newPostingTransaction = SavingsAccountTransactionData.overdraftInterest(savingsAccountData,
-                                    interestPostingTransactionDate, interestEarnedToBePostedForPeriod,
-                                    interestPostingPeriod.isUserPosting(), true);
+                                    interestPostingTransactionDate, interestEarnedToBePostedForPeriod.negated(),
+                                    interestPostingPeriod.isUserPosting(), isOverdraft);
                         }
+
                         savingsAccountData.updateTransactions(newPostingTransaction);
 
                         if (applyWithHoldTaxForOldTransaction) {
@@ -486,7 +486,7 @@ public class SavingsAccountInterestPostingServiceImpl implements SavingsAccountI
     }
 
     protected void recalculateDailyBalances(final Money openingAccountBalance, final LocalDate interestPostingUpToDate,
-            final boolean backdatedTxnsAllowedTill, final SavingsAccountData savingsAccountData) {
+                                            final boolean backdatedTxnsAllowedTill, final SavingsAccountData savingsAccountData) {
 
         Money runningBalance = openingAccountBalance.copy();
 
@@ -495,81 +495,64 @@ public class SavingsAccountInterestPostingServiceImpl implements SavingsAccountI
 
         final MonetaryCurrency currency = MonetaryCurrency.fromCurrencyData(savingsAccountData.getCurrency());
 
-        for (final SavingsAccountTransactionData tx : accountTransactionsSorted) {
-
-            if (tx.isReversed() || tx.isReversalTransaction()) {
-                tx.zeroBalanceFields();
-                continue;
-            }
-
-            Money overdraftForTx = Money.zero(currency);
-            Money txNetAmount = Money.zero(currency);
-
-            final boolean isCreditLike = tx.isCredit() || tx.isAmountRelease();
-            final boolean isDebitLike = tx.isDebit() || tx.isAmountOnHold();
-
-            if (isCreditLike) {
-                if (runningBalance.isLessThanZero()) {
-                    Money amountAsMoney = Money.of(currency, tx.getAmount());
-                    Money diff = amountAsMoney.plus(runningBalance);
-                    if (diff.isGreaterThanZero()) {
-                        overdraftForTx = amountAsMoney.minus(diff);
-                    } else {
-                        overdraftForTx = amountAsMoney;
-                    }
-                }
-                txNetAmount = txNetAmount.plus(tx.getAmount());
-            } else if (isDebitLike) {
-                if (runningBalance.isLessThanZero()) {
-                    overdraftForTx = Money.of(currency, tx.getAmount());
-                }
-                txNetAmount = txNetAmount.minus(tx.getAmount());
-            }
-
-            runningBalance = runningBalance.plus(txNetAmount);
-
-            if (!tx.getRunningBalance(currency).isEqualTo(runningBalance)) {
-                tx.updateRunningBalance(runningBalance);
-            }
-
-            if (overdraftForTx.isZero() && runningBalance.isLessThanZero()) {
-                overdraftForTx = overdraftForTx.plus(runningBalance.getAmount().negate());
-            }
-
-            if (tx.getId() == null && overdraftForTx.isGreaterThanZero()) {
-                tx.updateOverdraftAmount(overdraftForTx.getAmount());
+        for (final SavingsAccountTransactionData transaction : accountTransactionsSorted) {
+            if (transaction.isReversed() || transaction.isReversalTransaction()) {
+                transaction.zeroBalanceFields();
             } else {
-                Money currentOverdraft = Money.of(currency, tx.getOverdraftAmount());
-                if (overdraftForTx.isNotEqualTo(currentOverdraft)) {
+                Money overdraftAmount = Money.zero(savingsAccountData.getCurrency());
+                Money transactionAmount = Money.zero(savingsAccountData.getCurrency());
+                if (transaction.isCredit() || transaction.isAmountRelease()) {
+                    if (runningBalance.isLessThanZero()) {
+                        Money diffAmount = Money.of(savingsAccountData.getCurrency(), transaction.getAmount()).plus(runningBalance);
+                        if (diffAmount.isGreaterThanZero()) {
+                            overdraftAmount = Money.of(savingsAccountData.getCurrency(), transaction.getAmount()).minus(diffAmount);
+                        } else {
+                            overdraftAmount = Money.of(savingsAccountData.getCurrency(), transaction.getAmount());
+                        }
+                    }
+                    transactionAmount = transactionAmount.plus(transaction.getAmount());
+                } else if (transaction.isDebit() || transaction.isAmountOnHold()) {
+                    if (runningBalance.isLessThanZero()) {
+                        overdraftAmount = Money.of(savingsAccountData.getCurrency(), transaction.getAmount());
+                    }
+                    transactionAmount = transactionAmount.minus(transaction.getAmount());
+                }
 
-                    SavingsAccountTransactionData appended = SavingsAccountTransactionData.copyTransaction(tx);
-                    if (tx.isChargeTransaction()) {
-                        Set<SavingsAccountChargesPaidByData> chargesPaidBy = tx.getSavingsAccountChargesPaid();
+                runningBalance = runningBalance.plus(transactionAmount);
+                if (!transaction.getRunningBalance(transactionAmount.getCurrency()).isEqualTo(runningBalance)) {
+                    transaction.updateRunningBalance(runningBalance);
+                }
+                // transaction.updateRunningBalance(runningBalance);
+                if (overdraftAmount.isZero() && runningBalance.isLessThanZero()) {
+                    overdraftAmount = overdraftAmount.plus(runningBalance.getAmount().negate());
+                }
+                if (transaction.getId() == null && overdraftAmount.isGreaterThanZero()) {
+                    transaction.updateOverdraftAmount(overdraftAmount.getAmount());
+                } else if (overdraftAmount.isNotEqualTo(Money.of(savingsAccountData.getCurrency(), transaction.getOverdraftAmount()))) {
+                    SavingsAccountTransactionData accountTransaction = SavingsAccountTransactionData.copyTransaction(transaction);
+                    if (transaction.isChargeTransaction()) {
+                        Set<SavingsAccountChargesPaidByData> chargesPaidBy = transaction.getSavingsAccountChargesPaid();
                         final Set<SavingsAccountChargesPaidByData> newChargePaidBy = new HashSet<>();
                         chargesPaidBy.forEach(
-                                cpb -> newChargePaidBy.add(SavingsAccountChargesPaidByData.instance(cpb.getChargeId(), cpb.getAmount())));
-                        appended.getSavingsAccountChargesPaid().addAll(newChargePaidBy);
+                                x -> newChargePaidBy.add(SavingsAccountChargesPaidByData.instance(x.getChargeId(), x.getAmount())));
+                        accountTransaction.getSavingsAccountChargesPaid().addAll(newChargePaidBy);
                     }
-
-                    if (MathUtil.isGreaterThanZero(tx.getRunningBalance())) {
-                        tx.reverse();
+                    transaction.reverse();
+                    if (overdraftAmount.isGreaterThanZero()) {
+                        accountTransaction.updateOverdraftAmount(overdraftAmount.getAmount());
                     }
-
-                    if (overdraftForTx.isGreaterThanZero()) {
-                        appended.updateOverdraftAmount(overdraftForTx.getAmount());
-                    }
-                    appended.updateRunningBalance(runningBalance);
-                    addTransactionToExisting(appended, savingsAccountData);
+                    accountTransaction.updateRunningBalance(runningBalance);
+                    addTransactionToExisting(accountTransaction, savingsAccountData);
 
                     isTransactionsModified = true;
                 }
+
             }
         }
 
         if (isTransactionsModified) {
             accountTransactionsSorted = retrieveListOfTransactions(savingsAccountData);
         }
-
         resetAccountTransactionsEndOfDayBalances(accountTransactionsSorted, interestPostingUpToDate, savingsAccountData);
     }
 
