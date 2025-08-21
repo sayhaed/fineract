@@ -70,6 +70,10 @@ public final class PostingPeriod {
 
     private boolean overdraftInterest = false;
 
+    public void setOverdraftInterestRateAsFraction(BigDecimal overdraftInterestRateAsFraction) {
+        this.overdraftInterestRateAsFraction = overdraftInterestRateAsFraction;
+    }
+
     public static PostingPeriod createFrom(final LocalDateInterval periodInterval, final Money periodStartingBalance,
             final List<SavingsAccountTransactionDetailsForPostingPeriod> orderedListOfTransactions, final MonetaryCurrency currency,
             final SavingsCompoundingInterestPeriodType interestCompoundingPeriodType,
@@ -554,6 +558,12 @@ public final class PostingPeriod {
 
     public Integer getFinancialYearBeginningMonth() {
         return this.financialYearBeginningMonth;
+    }
+
+    // public List<CompoundingPeriod> getCompoundingPeriods() {return compoundingPeriods;}
+
+    public Money getClosingBalance() {
+        return closingBalance;
     }
 
 }
