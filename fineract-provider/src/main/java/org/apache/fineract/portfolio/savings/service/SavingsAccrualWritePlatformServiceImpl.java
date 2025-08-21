@@ -159,19 +159,17 @@ public class SavingsAccrualWritePlatformServiceImpl implements SavingsAccrualWri
         final List<LocalDate> accrualTransactionDates = savingsAccount.retrieveOrderedAccrualTransactions().stream()
                 .map(transaction -> transaction.getTransactionDate()).toList();
         final List<LocalDate> accrualTransactionDatesReverse = savingsAccount.retrieveOrderedAccrualTransactions().stream()
-                .filter(transaction -> transaction.isReversed())
-                .map(transaction -> transaction.getTransactionDate())
-                .toList();
+                .filter(transaction -> transaction.isReversed()).map(transaction -> transaction.getTransactionDate()).toList();
         LocalDate accruedTillDate = fromDate;
 
         for (PostingPeriod period : allPostingPeriods) {
             LocalDate valueDate = period.getPeriodInterval().endDate();
-            List<LocalDate> foundDateReverse = accrualTransactionDatesReverse.stream()
-                    .filter(date -> date.equals(valueDate)).toList();
+            List<LocalDate> matchingAccrualDates = accrualTransactionDatesReverse.stream()
+                    .filter(accrualDate -> accrualDate.equals(valueDate)).toList();
             period.calculateInterest(compoundInterestValues);
             final LocalDate endDate = period.getPeriodInterval().endDate();
             if (!accrualTransactionDates.contains(period.getPeriodInterval().endDate())
-                    && !MathUtil.isZero(period.closingBalance().getAmount()) || !foundDateReverse.isEmpty()) {
+                    && !MathUtil.isZero(period.closingBalance().getAmount()) || !matchingAccrualDates.isEmpty()) {
                 String refNo = (refNoProvider != null) ? refNoProvider.apply(endDate) : null;
                 SavingsAccountTransaction savingsAccountTransaction = SavingsAccountTransaction.accrual(savingsAccount,
                         savingsAccount.office(), period.getPeriodInterval().endDate(), period.getInterestEarned().abs(), false, refNo);
