@@ -116,8 +116,7 @@ public class SavingsSchedularInterestPoster {
                             && savingsAccountData.getGlAccountIdForInterestOnSavings() != 0) {
                         OffsetDateTime auditDatetime = DateUtils.getAuditOffsetDateTime();
                         paramsForGLInsertion.add(new Object[] {
-                                selectGlAccountId(savingsAccountData.isAllowOverdraft(), isOverdraft, savingsAccountData,
-                                        savingsAccountTransactionData, JournalEntryType.CREDIT.getValue()),
+                                savingsAccountTransactionData.getAccountCredit(),
                                 savingsAccountData.getOfficeId(), null, currencyCode,
                                 SAVINGS_TRANSACTION_IDENTIFIER + savingsAccountTransactionData.getId().toString(),
                                 savingsAccountTransactionData.getId(), null, false, null, false,
@@ -128,8 +127,7 @@ public class SavingsSchedularInterestPoster {
                                 DateUtils.getBusinessLocalDate() });
 
                         paramsForGLInsertion.add(new Object[] {
-                                selectGlAccountId(savingsAccountData.isAllowOverdraft(), isOverdraft, savingsAccountData,
-                                        savingsAccountTransactionData, JournalEntryType.DEBIT.getValue()),
+                                savingsAccountTransactionData.getAccountDebit(),
                                 savingsAccountData.getOfficeId(), null, currencyCode,
                                 SAVINGS_TRANSACTION_IDENTIFIER + savingsAccountTransactionData.getId().toString(),
                                 savingsAccountTransactionData.getId(), null, false, null, false,
@@ -160,28 +158,6 @@ public class SavingsSchedularInterestPoster {
 
     private List<SavingsAccountTransactionData> fetchTransactionsFromIds(final List<String> refNo) throws DataAccessException {
         return this.savingsAccountReadPlatformService.retrieveAllTransactionData(refNo);
-    }
-
-    private Long selectGlAccountId(Boolean allowOverdraft, Boolean isOverdraft, SavingsAccountData savingsAccountData,
-            SavingsAccountTransactionData savingsAccountTransactionData, Integer journalEntryType) {
-
-        JournalEntryType entryType = JournalEntryType.fromInt(journalEntryType);
-
-        if (entryType.isCreditType()) {
-            if (allowOverdraft && !MathUtil.isZero(savingsAccountData.getGlAccountIdForInterestReceivable()) && isOverdraft
-                    && MathUtil.isLessThanZero(savingsAccountTransactionData.getRunningBalance())) {
-                return savingsAccountData.getGlAccountIdForInterestReceivable();
-            }
-            return savingsAccountData.getGlAccountIdForSavingsControl();
-        }
-
-        if (allowOverdraft && !MathUtil.isZero(savingsAccountData.getGlAccountIdForInterestReceivable()) && isOverdraft) {
-            return MathUtil.isLessThanZero(savingsAccountTransactionData.getRunningBalance())
-                    ? savingsAccountData.getGlAccountIdForOverdraftPorfolio()
-                    : savingsAccountData.getGlAccountIdForInterestPayable();
-        }
-
-        return savingsAccountData.getGlAccountIdForInterestOnSavings();
     }
 
     @SuppressWarnings("unused")
