@@ -107,8 +107,8 @@ public final class SavingsAccountTransactionData implements Serializable {
     private transient String refNo;
     private Boolean isOverdraft;
 
-    private Long AccountCredit;
-    private Long AccountDebit;
+    private Long accountCredit;
+    private Long accountDebit;
 
     private SavingsAccountTransactionData(final Long id, final SavingsAccountTransactionEnumData transactionType,
             final PaymentDetailData paymentDetailData, final Long savingsId, final String savingsAccountNo, final LocalDate transactionDate,
@@ -689,10 +689,10 @@ public final class SavingsAccountTransactionData implements Serializable {
     }
 
     public void setAccountCredit(Long accountCredit) {
-        AccountCredit = accountCredit;
+        this.accountCredit = accountCredit;
     }
 
     public void setAccountDebit(Long accountDebit) {
-        AccountDebit = accountDebit;
+        this.accountDebit = accountDebit;
     }
 }
