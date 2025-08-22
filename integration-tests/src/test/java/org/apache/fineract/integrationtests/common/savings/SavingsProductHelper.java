@@ -202,6 +202,11 @@ public class SavingsProductHelper {
         return this;
     }
 
+    public SavingsProductHelper withInterestCompoundingPeriodTypeAsAnnually() {
+        this.interestPostingPeriodType = ANNUAL;
+        return this;
+    }
+
     public SavingsProductHelper withInterestPostingPeriodTypeAsMonthly() {
         this.interestPostingPeriodType = MONTHLY;
         return this;
@@ -355,6 +360,10 @@ public class SavingsProductHelper {
 
     public BigDecimal getNominalAnnualInterestRate() {
         return new BigDecimal(nominalAnnualInterestRate);
+    }
+
+    public BigDecimal getNominalAnnualInterestRateOverdraft() {
+        return new BigDecimal(nominalAnnualInterestRateOverdraft);
     }
 
     public BigDecimal getInterestCalculationDaysInYearType() {
