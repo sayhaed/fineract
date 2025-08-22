@@ -336,9 +336,10 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
             sqlBuilder.append(
                     "msac.id as chargeId, msac.amount as chargeAmount, msac.charge_time_enum as chargeTimeType, msac.is_penalty as isPenaltyCharge, ");
             sqlBuilder.append("txd.id as taxDetailsId, txd.amount as taxAmount, ");
+            sqlBuilder.append("apm.gl_account_id as glAccountIdForInterestOnSavings, apm1.gl_account_id as glAccountIdForSavingsControl, ");
             sqlBuilder.append(
-                    "apm2.gl_account_id as glAccountIdForInterestReceivable, apm1.gl_account_id as glAccountIdForInterestOnSavings, apm.gl_account_id as glAccountIdForSavingsControl, apm3.gl_account_id as glAccountIdForOverdraftPorfolio, ");
-            sqlBuilder.append("apm4.gl_account_id as glAccountIdForInterestPayable,");
+                    "apm2.gl_account_id as glAccountIdForInterestReceivable,apm3.gl_account_id as glAccountIdForOverdraftPorfolio, ");
+            sqlBuilder.append("apm4.gl_account_id as glAccountIdForInterestPayable, ");
             sqlBuilder.append(
                     "mtc.id as taxComponentId, mtc.debit_account_id as debitAccountId, mtc.credit_account_id as creditAccountId, mtc.percentage as taxPercentage ");
             sqlBuilder.append("from m_savings_account sa ");

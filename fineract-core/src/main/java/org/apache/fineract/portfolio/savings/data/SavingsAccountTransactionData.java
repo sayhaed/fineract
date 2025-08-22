@@ -107,6 +107,9 @@ public final class SavingsAccountTransactionData implements Serializable {
     private transient String refNo;
     private Boolean isOverdraft;
 
+    private Long AccountCredit;
+    private Long AccountDebit;
+
     private SavingsAccountTransactionData(final Long id, final SavingsAccountTransactionEnumData transactionType,
             final PaymentDetailData paymentDetailData, final Long savingsId, final String savingsAccountNo, final LocalDate transactionDate,
             final CurrencyData currency, final BigDecimal amount, final BigDecimal outstandingChargeAmount, final BigDecimal runningBalance,
@@ -683,5 +686,13 @@ public final class SavingsAccountTransactionData implements Serializable {
 
     public TransactionEntryType getEntryType() {
         return entryType;
+    }
+
+    public void setAccountCredit(Long accountCredit) {
+        AccountCredit = accountCredit;
+    }
+
+    public void setAccountDebit(Long accountDebit) {
+        AccountDebit = accountDebit;
     }
 }
