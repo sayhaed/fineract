@@ -56,8 +56,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class SavingsAccountInterestPostingServiceImpl implements SavingsAccountInterestPostingService {
 
     private final SavingsHelper savingsHelper;
-    @Autowired
-    private TaxReadPlatformService readPlatformService;
+
+
 
     @Override
     public SavingsAccountData postInterest(final MathContext mc, final LocalDate interestPostingUpToDate, final boolean isInterestTransfer,
@@ -106,13 +106,8 @@ public class SavingsAccountInterestPostingServiceImpl implements SavingsAccountI
                     savingsAccountData.updateTransactions(newPostingTransaction);
 
                     if (applyWithHoldTax) {
-                        TaxGroupData taxGroupData = null;
-                        taxGroupData = this.readPlatformService.retrieveTaxGroupWithTemplate(savingsAccountData.getTaxGroup().getId());
-                        if (taxGroupData != null){
-                            savingsAccountData.setTaxGroup(taxGroupData);
-                        }
-                        createWithHoldTransaction(interestEarnedToBePostedForPeriod.getAmount(), interestPostingTransactionDate,
-                                savingsAccountData);
+                         createWithHoldTransaction(interestEarnedToBePostedForPeriod.getAmount(), interestPostingTransactionDate,
+                                    savingsAccountData);
                     }
                     recalucateDailyBalanceDetails = true;
                 } else {

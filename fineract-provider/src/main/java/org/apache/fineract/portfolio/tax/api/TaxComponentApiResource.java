@@ -103,10 +103,10 @@ public class TaxComponentApiResource {
     @RequestBody(required = true, content = @Content(schema = @Schema(implementation = TaxComponentApiResourceSwagger.PostTaxesComponentsRequest.class)))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = TaxComponentApiResourceSwagger.PostTaxesComponentsResponse.class))) })
-    public String createTaxCompoent(@Parameter(hidden = true) final String apiRequestBodyAsJson) {
-        final CommandWrapper commandRequest = new CommandWrapperBuilder().createTaxComponent().withJson(apiRequestBodyAsJson).build();
-        final CommandProcessingResult result = this.commandsSourceWritePlatformService.logCommandSource(commandRequest);
-        return this.toApiJsonSerializer.serialize(result);
+    public CommandProcessingResult createTaxComponent(@Parameter(hidden = true) TaxComponentRequest taxComponentRequest) {
+        final CommandWrapper commandRequest = new CommandWrapperBuilder().createTaxComponent()
+                .withJson(toApiJsonSerializer.serialize(taxComponentRequest)).build();
+        return commandsSourceWritePlatformService.logCommandSource(commandRequest);
     }
 
     @PUT
