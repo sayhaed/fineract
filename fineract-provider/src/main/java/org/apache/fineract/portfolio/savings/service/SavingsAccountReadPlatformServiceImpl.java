@@ -510,7 +510,6 @@ public class SavingsAccountReadPlatformServiceImpl implements SavingsAccountRead
                     final Long taxGroupId = JdbcSupport.getLongDefaultToNullIfZero(rs, "taxGroupId");
                     TaxGroupData taxGroupData = null;
                     if (taxGroupId != null) {
-                        // Aquí es donde obtienes el objeto completo, no solo el ID
                         taxGroupData = readPlatformService.retrieveTaxGroupWithTemplate(taxGroupId);
                     }
 

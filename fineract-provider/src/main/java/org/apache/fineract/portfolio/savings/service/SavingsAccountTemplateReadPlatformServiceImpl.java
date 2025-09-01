@@ -356,7 +356,6 @@ public class SavingsAccountTemplateReadPlatformServiceImpl implements SavingsAcc
             final String taxGroupName = rs.getString("taxGroupName");
             TaxGroupData taxGroupData = null;
             if (taxGroupId != null) {
-                // Aquí es donde obtienes el objeto completo, no solo el ID
                 taxGroupData = readPlatformService.retrieveTaxGroupWithTemplate(taxGroupId);
             }
 
