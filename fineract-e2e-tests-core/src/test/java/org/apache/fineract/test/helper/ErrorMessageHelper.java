@@ -695,6 +695,10 @@ public final class ErrorMessageHelper {
                 actual, expected);
     }
 
+    public static String wrongDataInExternalAssetOwnerLoanProductAttribute(String attributeKey, long loanProduct) {
+        return String.format("No attribute %s for loan product %s is found!", attributeKey, loanProduct);
+    }
+
     public static String wrongData(String actual, String expected) {
         return String.format("Wrong data. Actual value is: %s - But expected value is: %s", actual, expected);
     }
@@ -1033,6 +1037,10 @@ public final class ErrorMessageHelper {
         return "The parameter `amount` must be greater than or equal to 0.";
     }
 
+    public static String updateAvailableDisbursementLoanCannotBeZeroAsNothingWasDisbursed() {
+        return "Failed data validation due to: cannot.be.zero.as.nothing.was.disbursed.yet.";
+    }
+
     public static String wrongValueInLineInBuyDownFeeTab(String resourceId, int line, List<List<String>> actualList,
             List<String> expected) {
         String actual = actualList.stream().map(Object::toString).collect(Collectors.joining(System.lineSeparator()));
@@ -1057,5 +1065,11 @@ public final class ErrorMessageHelper {
     public static String nrOfLinesWrongInDeferredIncomeTab(String resourceId, int actual, int expected) {
         return String.format("%nNumber of lines does not match in Deferred Income tab and expected datatable of resource %s." //
                 + "%nNumber of transaction tab lines: %s %nNumber of expected datatable lines: %s%n", resourceId, actual, expected);
+    }
+
+    public static String wrongAvailableDisbursementAmountWithOverApplied(final double actual, final double expected) {
+        return String.format(
+                "Wrong value in LoanDetails/availableDisbursementAmountWithOverApplied. %nActual value is: %s %nExpected Value is: %s",
+                actual, expected);
     }
 }
