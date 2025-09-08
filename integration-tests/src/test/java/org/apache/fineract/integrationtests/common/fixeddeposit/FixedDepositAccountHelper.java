@@ -557,6 +557,15 @@ public class FixedDepositAccountHelper {
         return response;
     }
 
+
+    @Deprecated(forRemoval = true)
+    public List<HashMap> getFixedDepositTransactions(final Integer accountID) {
+        LOG.info("---------------- RETRIEVING TRANSACTIONS FOR FIXED DEPOSIT ACCOUNT {} -----------------", accountID);
+        final String GET_FIXED_DEPOSIT_BY_ID_URL = FIXED_DEPOSIT_ACCOUNT_URL + "/" + accountID + "?associations=transactions&" + Utils.TENANT_IDENTIFIER;
+        final HashMap response = Utils.performServerGet(this.requestSpec, this.responseSpec, GET_FIXED_DEPOSIT_BY_ID_URL, "");
+        return (List<HashMap>) response.get("transactions");
+    }
+
     public FixedDepositAccountHelper withSubmittedOnDate(final String fixedDepositApplicationSubmittedDate) {
         this.submittedOnDate = fixedDepositApplicationSubmittedDate;
         return this;

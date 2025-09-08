@@ -53,6 +53,7 @@ public class SavingsProductHelper {
     private static final String MONTHLY = "4";
     private static final String QUARTERLY = "5";
     private static final String ANNUAL = "7";
+    private static final String None = "8";
     private static final String INTEREST_CALCULATION_USING_DAILY_BALANCE = "1";
     private static final String INTEREST_CALCULATION_USING_AVERAGE_DAILY_BALANCE = "2";
     private static final String DAYS_360 = "360";
@@ -83,7 +84,7 @@ public class SavingsProductHelper {
     private String withdrawalFeeForTransfers = "true";
     private String lockingPeriodFrequencyType = DAYS;
     private String currencyCode = USD;
-    private final String interestCalculationDaysInYearType = DAYS_365;
+    private String interestCalculationDaysInYearType = DAYS_365;
     private Account[] accountList = null;
     private String minBalanceForInterestCalculation = null;
     private String allowOverdraft = "false";
@@ -372,6 +373,16 @@ public class SavingsProductHelper {
 
     public Integer getDecimalCurrency() {
         return Integer.parseInt(DIGITS_AFTER_DECIMAL);
+    }
+
+    public SavingsProductHelper interestCalculationDaysInYearType() {
+        this.interestCalculationDaysInYearType = DAYS_360;
+        return this;
+    }
+
+    public SavingsProductHelper withInterestPostingPeriodTypeAsNONE() {
+        this.interestPostingPeriodType = None;
+        return this;
     }
 
     // TODO: Rewrite to use fineract-client instead!
