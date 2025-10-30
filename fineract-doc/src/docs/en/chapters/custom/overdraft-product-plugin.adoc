@@ -1,0 +1,238 @@
+//
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+= Propuesta técnica – Plugin “Overdraft Product Engine”
+
+== 0) Contexto del proyecto
+
+Objetivo: implementar un motor de configuración de producto para crédito revolvente / sobregiro (Epic 2.1) que negocio pueda parametrizar sin tocar código:
+
+* Límites (min/max/default),
+* Interés (método/base de días/redondeo/posting),
+* Comisiones (setup/uso/mora/renovación),
+* Reglas de uso (canales permitidos, topes por operación/día/mes, whitelists/blacklists),
+* Mapeos contables (GL overrides),
+* Versionado con vigencias.
+
+Decisión: extender el monolito como plugin (mismo proceso/JVM), sin forkar el core. El plugin se carga por classpath y se despliega en Docker montando un volumen en runtime.
+
+== 1) Enfoque de extensión (sin copy-paste del módulo loans)
+
+Crear nuevo paquete de dominio `overdraftproduct` como plugin con:
+
+* Entidades propias (`OverdraftProduct`, `OverdraftFee`, `OverdraftUsageRule`, `OverdraftProductAccounting`, `OverdraftProductVersion`).
+* Servicios de lectura/escritura, validaciones, y motor de reglas de uso.
+* API REST de administración (wizard de producto).
+* Migraciones Liquibase incluidas en el JAR del plugin.
+
+Abrir/usar puntos de extensión (SPI) del core para:
+
+* Pre-validar transacciones (reglas de uso/limites).
+* Override de parámetros de interés (base de días/redondeo/posting schedule).
+* Override de mapeos contables (GL) a nivel producto.
+
+Si algún hook no existe, proponemos un SPI mínimo en el core (interfaces neutrales + composite) y el plugin provee las implementaciones.
+
+== 2) Paquetes y clases del plugin
+
+Base package: `com.yourorg.fineract.plugins.overdraftproduct`
+
+[source]
+----
+overdraftproduct/
+ ├─ domain/
+ │   ├─ OverdraftProduct.java
+ │   ├─ OverdraftFee.java
+ │   ├─ OverdraftUsageRule.java
+ │   ├─ OverdraftProductAccounting.java
+ │   ├─ OverdraftProductVersion.java
+ │   └─ repositories/ (JPA)
+ ├─ service/
+ │   ├─ OverdraftProductWritePlatformService{,Impl}.java
+ │   ├─ OverdraftProductReadPlatformService{,Impl}.java
+ │   ├─ OverdraftProductValidationService.java     // rangos, vigencias, GL obligatorios, etc.
+ │   └─ OverdraftRuleEngine.java                   // reglas de uso: canales, topes, MCC
+ ├─ api/
+ │   └─ OverdraftProductApiResource.java           // /api/v1/overdraft-products
+ ├─ accounting/
+ │   └─ OverdraftAccountingResolver.java           // prioridad a GLs del producto overdraft
+ ├─ serialization/
+ │   ├─ OverdraftProductData.java                  // DTO lectura
+ │   └─ OverdraftProductCommand.java               // DTO escritura
+ ├─ config/
+ │   ├─ OverdraftAutoConfiguration.java            // @Configuration + beans
+ │   └─ OverdraftPluginProperties.java             // @ConfigurationProperties("plugin.overdraft")
+ └─ spi/
+     ├─ OverdraftLoanTxnValidator.java             // implementa hook de pre-validación de transacciones
+     ├─ InterestConfigOverrideProvider.java        // override base de días/redondeo/posting
+     └─ GLMappingOverrideProvider.java             // override mapeos contables
+----
+
+Migraciones DB (dentro del plugin):
+
+`db/changelog-overdraft.xml` con tablas:
+
+* `m_overdraft_product`, `m_overdraft_fees`, `m_overdraft_usage_rules`,
+* `m_overdraft_product_accounting`, `m_overdraft_product_version`.
+
+Todas con `tenant_id`, índices por estado/fechas, y FK opcional a `m_product_loan`.
+
+== 3) SPIs del core (hooks)
+
+Registrar en el core interfaces “depluggables” y composites. El plugin se registra vía Spring.
+
+* `LoanTransactionPreValidator` → `validate(Loan loan, LoanTransactionCommand cmd)`
+** Plugin: `OverdraftLoanTxnValidator` llama `OverdraftRuleEngine` si la cuenta está ligada a `OverdraftProduct` vigente.
+* `InterestConfigProvider` → `InterestConfig getFor(Loan loan)`
+** Plugin: `InterestConfigOverrideProvider` retorna overrides (base de días, redondeo, posting schedule) si aplica; si no, delega al core.
+* `AccountingMappingResolver` → `GLMapping resolveFor(LoanEvent evt, Loan loan)`
+** Plugin: `GLMappingOverrideProvider` prioriza `OverdraftProductAccounting` y cae a mapping de `LoanProduct` si no hay override.
+
+Si ya existen listeners/eventos de negocio equivalentes, reutilizarlos. Si no, agregar estos SPIs mínimos.
+
+== 4) Despliegue en Docker – volumen en runtime
+
+Estructura:
+
+[source]
+----
+fineract-docker/
+├── docker-compose.yaml
+├── plugins/
+│   └── overdraft-plugin-1.0.0.jar
+└── .env   (opcional)
+----
+
+`docker-compose.yaml`:
+
+[source,yaml]
+----
+version: "3.8"
+
+services:
+  fineract:
+    image: apache/fineract:latest
+    container_name: fineract
+    restart: unless-stopped
+    environment:
+      - SERVER_PORT=8443
+      - FINERACT_DEFAULT_TENANTDB_HOSTNAME=fineract-db
+      - FINERACT_DEFAULT_TENANTDB_PORT=3306
+      - FINERACT_DEFAULT_TENANTDB_UID=mifos
+      - FINERACT_DEFAULT_TENANTDB_PWD=Password10$
+      - FINERACT_DEFAULT_TENANTDB_NAME=fineract_default
+
+      # Plugin flags
+      - PLUGIN_OVERDRAFT_ENABLED=true
+      - CLASSPATH=/opt/fineract/plugins/*:$CLASSPATH
+
+    ports:
+      - "8443:8443"
+
+    volumes:
+      - ./plugins:/opt/fineract/plugins     # <— Montaje del JAR del plugin
+      - fineract-data:/var/lib/fineract     # opcional: persistencia
+
+    depends_on:
+      - fineract-db
+
+  fineract-db:
+    image: mysql:8.0
+    container_name: fineract-db
+    restart: unless-stopped
+    environment:
+      - MYSQL_DATABASE=fineract_default
+      - MYSQL_USER=mifos
+      - MYSQL_PASSWORD=Password10$
+      - MYSQL_ROOT_PASSWORD=root
+    ports:
+      - "3307:3306"
+    volumes:
+      - fineract-mysql:/var/lib/mysql
+
+volumes:
+  fineract-data:
+  fineract-mysql:
+----
+
+Runbook:
+
+[source,shell]
+----
+# Construir plugin
+mvn -q clean package -DskipTests
+
+# Copiar JAR al volumen
+cp target/overdraft-plugin-1.0.0.jar fineract-docker/plugins/
+
+# Levantar
+cd fineract-docker
+docker-compose up -d
+
+# Verificar carga
+docker logs -f fineract | egrep "Overdraft|AutoConfiguration|Liquibase"
+----
+
+Logs esperados:
+
+* Auto-config del plugin habilitado.
+* Migraciones Liquibase del plugin aplicadas.
+* Registro de endpoints `/api/v1/overdraft-products`.
+* Registro de validadores/resolvers del SPI.
+
+== 5) Backlog mínimo (con criterios de aceptación)
+
+* Core SPI – Pre-validación de transacciones
+** AC: interfaz + composite registrados; plugin puede añadir validadores; transacción de cuenta overdraft rechaza uso prohibido o excede topes; logging/auditoría.
+* Core SPI – InterestConfigProvider
+** AC: permite overrides (base de días/redondeo/posting) por producto overdraft; si no aplica, mantiene comportamiento actual.
+* Core SPI – AccountingMappingResolver
+** AC: eventos con producto overdraft usan mapeos GL propios; fallback limpio a GL de LoanProduct.
+* Plugin – Dominio + Migraciones
+** AC: tablas `m_overdraft_*` creadas con `tenant_id` + índices; repos JPA funcionales.
+* Plugin – Servicios + Validaciones
+** AC: rangos (min/max/default), vigencias sin overlap, GLs obligatorios, consistencia de topes y reglas de uso.
+* Plugin – API Admin (CRUD + Activate/Retire + Validate)
+** AC: endpoints REST seguros (roles `OVERDRAFT_PRODUCT_ADMIN`/`VIEW`), POST/PUT/GET, `:activate`, `:retire`, `validate`.
+* Plugin – Hooks (Validator/Interest/Accounting)
+** AC: validación de uso antes de aplicar transacción; overrides de interés y GL efectivos; pruebas de integración.
+* Docker – Volumen en runtime
+** AC: el sistema corre con `overdraft-plugin-*.jar` montado, sin rebuild de imagen; logs confirman carga; endpoints disponibles.
+
+== 6) Testing
+
+* Unit: validaciones de dominio, reglas de uso, resoluciones de GL/interest config.
+* Integration: Fineract + plugin en classpath (Testcontainers), migraciones ejecutadas, SPIs registrados, endpoints OK.
+* Contract: si se agregan SPIs, tests de contrato para asegurar compatibilidad en upgrades del core.
+
+== 7) Riesgos y mitigaciones
+
+* Falta de hooks en core → Mitigar con SPIs pequeños y neutrales, PR mínimo.
+* Compatibilidad de versiones → SemVer + tests de contrato para SPIs.
+* Orden de migraciones → Ejecutar Liquibase del plugin en startup antes de exponer endpoints.
+* Seguridad → Reusar Spring Security de Fineract; nuevos roles; validar `tenant_id` en todas las consultas.
+
+== 8) Estimación (2 BE + 1 FE admin)
+
+* Core SPIs (si faltan): 2–4 días
+* Plugin dominio/servicios/migraciones: 8–10 días
+* Hooks (validator/interest/accounting) + pruebas: 4–6 días
+* API + FE admin (wizard simple): 4–5 días
+* Docker/CI/CD + docs/hardening: 2–3 días
+
+Total: ~ 3–4 semanas (trabajo en paralelo).

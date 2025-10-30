@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.8.xsd">
+
+    <changeSet id="20240701-od-product" author="yourorg">
+        <createTable tableName="m_overdraft_product">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="loan_product_id" type="BIGINT">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="external_id" type="VARCHAR(100)"/>
+            <column name="name" type="VARCHAR(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="VARCHAR(500)"/>
+            <column name="limit_min" type="DECIMAL(19,6)"/>
+            <column name="limit_max" type="DECIMAL(19,6)"/>
+            <column name="limit_default" type="DECIMAL(19,6)"/>
+            <column name="active" type="BOOLEAN" defaultValueBoolean="false"/>
+            <column name="valid_from" type="DATE"/>
+            <column name="valid_until" type="DATE"/>
+            <column name="tenant_id" type="BIGINT" defaultValueNumeric="1">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_date" type="DATETIME"/>
+            <column name="last_modified_date" type="DATETIME"/>
+            <column name="created_by_id" type="BIGINT"/>
+            <column name="last_modified_by_id" type="BIGINT"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="m_overdraft_product" baseColumnNames="loan_product_id"
+            referencedTableName="m_product_loan" referencedColumnNames="id" constraintName="fk_overdraft_product_loan"/>
+        <createIndex tableName="m_overdraft_product" indexName="idx_overdraft_product_active">
+            <column name="active"/>
+        </createIndex>
+        <createIndex tableName="m_overdraft_product" indexName="idx_overdraft_product_valid_from">
+            <column name="valid_from"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="20240701-od-product-version" author="yourorg">
+        <createTable tableName="m_overdraft_product_version">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="product_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version_label" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="effective_from" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="effective_until" type="DATE"/>
+            <column name="default_limit" type="DECIMAL(19,6)"/>
+            <column name="interest_rate" type="DECIMAL(19,6)"/>
+            <column name="interest_calculation_period" type="INT"/>
+            <column name="posting_strategy" type="VARCHAR(100)"/>
+            <column name="rounding_mode" type="VARCHAR(50)"/>
+            <column name="tenant_id" type="BIGINT" defaultValueNumeric="1">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_date" type="DATETIME"/>
+            <column name="last_modified_date" type="DATETIME"/>
+            <column name="created_by_id" type="BIGINT"/>
+            <column name="last_modified_by_id" type="BIGINT"/>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="m_overdraft_product_version" baseColumnNames="product_id"
+            referencedTableName="m_overdraft_product" referencedColumnNames="id" constraintName="fk_overdraft_version_product"/>
+        <createIndex tableName="m_overdraft_product_version" indexName="idx_overdraft_version_effective_from">
+            <column name="effective_from"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="20240701-od-fees" author="yourorg">
+        <createTable tableName="m_overdraft_fee">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="version_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="fee_type" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="flat_amount" type="DECIMAL(19,6)"/>
+            <column name="percentage" type="DECIMAL(19,6)"/>
+            <column name="currency_code" type="VARCHAR(10)"/>
+            <column name="tenant_id" type="BIGINT" defaultValueNumeric="1">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="m_overdraft_fee" baseColumnNames="version_id"
+            referencedTableName="m_overdraft_product_version" referencedColumnNames="id" constraintName="fk_overdraft_fee_version"/>
+        <createIndex tableName="m_overdraft_fee" indexName="idx_overdraft_fee_type">
+            <column name="fee_type"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="20240701-od-usage-rules" author="yourorg">
+        <createTable tableName="m_overdraft_usage_rule">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="version_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="channel" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="per_txn_limit" type="DECIMAL(19,6)"/>
+            <column name="daily_limit" type="DECIMAL(19,6)"/>
+            <column name="monthly_limit" type="DECIMAL(19,6)"/>
+            <column name="whitelist" type="BOOLEAN" defaultValueBoolean="true"/>
+            <column name="mcc_codes" type="VARCHAR(400)"/>
+            <column name="tenant_id" type="BIGINT" defaultValueNumeric="1">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="m_overdraft_usage_rule" baseColumnNames="version_id"
+            referencedTableName="m_overdraft_product_version" referencedColumnNames="id" constraintName="fk_overdraft_rule_version"/>
+        <createIndex tableName="m_overdraft_usage_rule" indexName="idx_overdraft_rule_channel">
+            <column name="channel"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="20240701-od-accounting" author="yourorg">
+        <createTable tableName="m_overdraft_product_accounting">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="version_id" type="BIGINT">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="loan_portfolio_account_id" type="BIGINT"/>
+            <column name="interest_income_account_id" type="BIGINT"/>
+            <column name="fee_income_account_id" type="BIGINT"/>
+            <column name="receivable_interest_account_id" type="BIGINT"/>
+            <column name="receivable_fee_account_id" type="BIGINT"/>
+            <column name="charge_off_account_id" type="BIGINT"/>
+            <column name="tenant_id" type="BIGINT" defaultValueNumeric="1">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="m_overdraft_product_accounting" baseColumnNames="version_id"
+            referencedTableName="m_overdraft_product_version" referencedColumnNames="id" constraintName="fk_overdraft_accounting_version"/>
+        <addForeignKeyConstraint baseTableName="m_overdraft_product_accounting" baseColumnNames="loan_portfolio_account_id"
+            referencedTableName="acc_gl_account" referencedColumnNames="id" constraintName="fk_overdraft_acc_portfolio"/>
+        <addForeignKeyConstraint baseTableName="m_overdraft_product_accounting" baseColumnNames="interest_income_account_id"
+            referencedTableName="acc_gl_account" referencedColumnNames="id" constraintName="fk_overdraft_acc_interest_income"/>
+        <addForeignKeyConstraint baseTableName="m_overdraft_product_accounting" baseColumnNames="fee_income_account_id"
+            referencedTableName="acc_gl_account" referencedColumnNames="id" constraintName="fk_overdraft_acc_fee_income"/>
+        <addForeignKeyConstraint baseTableName="m_overdraft_product_accounting" baseColumnNames="receivable_interest_account_id"
+            referencedTableName="acc_gl_account" referencedColumnNames="id" constraintName="fk_overdraft_acc_rec_interest"/>
+        <addForeignKeyConstraint baseTableName="m_overdraft_product_accounting" baseColumnNames="receivable_fee_account_id"
+            referencedTableName="acc_gl_account" referencedColumnNames="id" constraintName="fk_overdraft_acc_rec_fee"/>
+        <addForeignKeyConstraint baseTableName="m_overdraft_product_accounting" baseColumnNames="charge_off_account_id"
+            referencedTableName="acc_gl_account" referencedColumnNames="id" constraintName="fk_overdraft_acc_charge_off"/>
+    </changeSet>
+
+</databaseChangeLog>

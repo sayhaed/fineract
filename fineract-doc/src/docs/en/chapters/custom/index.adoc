@@ -16,4 +16,6 @@ include::database-migration.adoc[leveloffset=+1]
 
 include::deployment.adoc[leveloffset=+1]
 
+include::overdraft-product-plugin.adoc[leveloffset=+1]
+
 include::outlook.adoc[leveloffset=+1]
