@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements. See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership. The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License. You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied. See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.3.xsd">
+
+    <changeSet id="1" author="fineract">
+        <createTable tableName="m_overdraft_product">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_m_overdraft_product"/>
+            </column>
+            <column name="loan_product_id" type="BIGINT"/>
+            <column name="name" type="VARCHAR(200)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="VARCHAR(1000)"/>
+            <column name="currency_code" type="VARCHAR(3)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="default_limit" type="DECIMAL(19,6)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="min_limit" type="DECIMAL(19,6)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="max_limit" type="DECIMAL(19,6)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="interest_rate" type="DECIMAL(10,6)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="interest_method" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="day_count_basis" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="rounding_scale" type="INTEGER"/>
+            <column name="rounding_mode" type="VARCHAR(20)"/>
+            <column name="compounding_enabled" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="posting_schedule" type="VARCHAR(255)"/>
+            <column name="allow_account_override" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="VARCHAR(25)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="activated_on" type="DATE"/>
+            <column name="retired_on" type="DATE"/>
+            <column name="createdby_id" type="BIGINT"/>
+            <column name="created_date" type="TIMESTAMP"/>
+            <column name="lastmodifiedby_id" type="BIGINT"/>
+            <column name="lastmodified_date" type="TIMESTAMP"/>
+        </createTable>
+        <addUniqueConstraint tableName="m_overdraft_product" columnNames="name" constraintName="uk_m_overdraft_product_name"/>
+        <addForeignKeyConstraint baseTableName="m_overdraft_product" baseColumnNames="loan_product_id"
+                                 referencedTableName="m_product_loan" referencedColumnNames="id"
+                                 constraintName="fk_m_overdraft_product_loan"/>
+        <addForeignKeyConstraint baseTableName="m_overdraft_product" baseColumnNames="createdby_id"
+                                 referencedTableName="m_appuser" referencedColumnNames="id"
+                                 constraintName="fk_overdraft_product_created_by"/>
+        <addForeignKeyConstraint baseTableName="m_overdraft_product" baseColumnNames="lastmodifiedby_id"
+                                 referencedTableName="m_appuser" referencedColumnNames="id"
+                                 constraintName="fk_overdraft_product_updated_by"/>
+        <rollback>
+            <dropTable tableName="m_overdraft_product"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="2" author="fineract">
+        <createIndex tableName="m_overdraft_product" indexName="idx_m_overdraft_product_status">
+            <column name="status"/>
+        </createIndex>
+        <createIndex tableName="m_overdraft_product" indexName="idx_m_overdraft_product_currency">
+            <column name="currency_code"/>
+        </createIndex>
+        <rollback>
+            <dropIndex tableName="m_overdraft_product" indexName="idx_m_overdraft_product_currency"/>
+            <dropIndex tableName="m_overdraft_product" indexName="idx_m_overdraft_product_status"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="3" author="fineract">
+        <createTable tableName="m_overdraft_fee">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_m_overdraft_fee"/>
+            </column>
+            <column name="overdraft_product_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="fee_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="calculation_type" type="VARCHAR(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="amount" type="DECIMAL(19,6)"/>
+            <column name="percentage" type="DECIMAL(10,6)"/>
+            <column name="tier_definition" type="VARCHAR(1000)"/>
+            <column name="trigger_condition" type="VARCHAR(255)"/>
+            <column name="is_active" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createIndex tableName="m_overdraft_fee" indexName="idx_m_overdraft_fee_product_type">
+            <column name="overdraft_product_id"/>
+            <column name="fee_type"/>
+        </createIndex>
+        <addForeignKeyConstraint baseTableName="m_overdraft_fee" baseColumnNames="overdraft_product_id"
+                                 referencedTableName="m_overdraft_product" referencedColumnNames="id"
+                                 constraintName="fk_overdraft_fee_product" onDelete="CASCADE"/>
+        <rollback>
+            <dropTable tableName="m_overdraft_fee"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="4" author="fineract">
+        <createTable tableName="m_overdraft_usage_rule">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_m_overdraft_usage_rule"/>
+            </column>
+            <column name="overdraft_product_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="channel" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="is_allowed" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+            <column name="transaction_limit" type="DECIMAL(19,6)"/>
+            <column name="daily_limit" type="DECIMAL(19,6)"/>
+            <column name="monthly_limit" type="DECIMAL(19,6)"/>
+            <column name="cooling_period_minutes" type="INTEGER"/>
+        </createTable>
+        <createIndex tableName="m_overdraft_usage_rule" indexName="idx_m_overdraft_usage_rule_channel">
+            <column name="overdraft_product_id"/>
+            <column name="channel"/>
+        </createIndex>
+        <addForeignKeyConstraint baseTableName="m_overdraft_usage_rule" baseColumnNames="overdraft_product_id"
+                                 referencedTableName="m_overdraft_product" referencedColumnNames="id"
+                                 constraintName="fk_overdraft_usage_product" onDelete="CASCADE"/>
+
+        <createTable tableName="m_overdraft_usage_rule_whitelist">
+            <column name="usage_rule_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="merchant_category" type="VARCHAR(10)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addPrimaryKey tableName="m_overdraft_usage_rule_whitelist" columnNames="usage_rule_id, merchant_category"
+                       constraintName="pk_overdraft_usage_rule_whitelist"/>
+        <addForeignKeyConstraint baseTableName="m_overdraft_usage_rule_whitelist" baseColumnNames="usage_rule_id"
+                                 referencedTableName="m_overdraft_usage_rule" referencedColumnNames="id"
+                                 constraintName="fk_overdraft_usage_whitelist_rule" onDelete="CASCADE"/>
+
+        <createTable tableName="m_overdraft_usage_rule_blacklist">
+            <column name="usage_rule_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="merchant_category" type="VARCHAR(10)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addPrimaryKey tableName="m_overdraft_usage_rule_blacklist" columnNames="usage_rule_id, merchant_category"
+                       constraintName="pk_overdraft_usage_rule_blacklist"/>
+        <addForeignKeyConstraint baseTableName="m_overdraft_usage_rule_blacklist" baseColumnNames="usage_rule_id"
+                                 referencedTableName="m_overdraft_usage_rule" referencedColumnNames="id"
+                                 constraintName="fk_overdraft_usage_blacklist_rule" onDelete="CASCADE"/>
+        <rollback>
+            <dropTable tableName="m_overdraft_usage_rule_blacklist"/>
+            <dropTable tableName="m_overdraft_usage_rule_whitelist"/>
+            <dropTable tableName="m_overdraft_usage_rule"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="5" author="fineract">
+        <createTable tableName="m_overdraft_product_accounting">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_m_overdraft_product_accounting"/>
+            </column>
+            <column name="overdraft_product_id" type="BIGINT">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="receivable_account_id" type="BIGINT"/>
+            <column name="interest_income_account_id" type="BIGINT"/>
+            <column name="fee_income_account_id" type="BIGINT"/>
+            <column name="suspense_account_id" type="BIGINT"/>
+            <column name="writeoff_account_id" type="BIGINT"/>
+            <column name="penalty_income_account_id" type="BIGINT"/>
+            <column name="accrual_enabled" type="BOOLEAN" defaultValueBoolean="false">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="m_overdraft_product_accounting" baseColumnNames="overdraft_product_id"
+                                 referencedTableName="m_overdraft_product" referencedColumnNames="id"
+                                 constraintName="fk_overdraft_accounting_product" onDelete="CASCADE"/>
+        <addForeignKeyConstraint baseTableName="m_overdraft_product_accounting" baseColumnNames="receivable_account_id"
+                                 referencedTableName="acc_gl_account" referencedColumnNames="id"
+                                 constraintName="fk_overdraft_accounting_receivable"/>
+        <addForeignKeyConstraint baseTableName="m_overdraft_product_accounting" baseColumnNames="interest_income_account_id"
+                                 referencedTableName="acc_gl_account" referencedColumnNames="id"
+                                 constraintName="fk_overdraft_accounting_interest"/>
+        <addForeignKeyConstraint baseTableName="m_overdraft_product_accounting" baseColumnNames="fee_income_account_id"
+                                 referencedTableName="acc_gl_account" referencedColumnNames="id"
+                                 constraintName="fk_overdraft_accounting_fee"/>
+        <addForeignKeyConstraint baseTableName="m_overdraft_product_accounting" baseColumnNames="suspense_account_id"
+                                 referencedTableName="acc_gl_account" referencedColumnNames="id"
+                                 constraintName="fk_overdraft_accounting_suspense"/>
+        <addForeignKeyConstraint baseTableName="m_overdraft_product_accounting" baseColumnNames="writeoff_account_id"
+                                 referencedTableName="acc_gl_account" referencedColumnNames="id"
+                                 constraintName="fk_overdraft_accounting_writeoff"/>
+        <addForeignKeyConstraint baseTableName="m_overdraft_product_accounting"
+                                 baseColumnNames="penalty_income_account_id" referencedTableName="acc_gl_account"
+                                 referencedColumnNames="id" constraintName="fk_overdraft_accounting_penalty"/>
+        <rollback>
+            <dropTable tableName="m_overdraft_product_accounting"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="6" author="fineract">
+        <createTable tableName="m_overdraft_product_version">
+            <column autoIncrement="true" name="id" type="BIGINT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_m_overdraft_product_version"/>
+            </column>
+            <column name="overdraft_product_id" type="BIGINT">
+                <constraints nullable="false"/>
+            </column>
+            <column name="version_label" type="VARCHAR(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="effective_from" type="DATE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="effective_to" type="DATE"/>
+            <column name="notes" type="VARCHAR(1000)"/>
+        </createTable>
+        <createIndex tableName="m_overdraft_product_version" indexName="idx_m_overdraft_product_version_date">
+            <column name="overdraft_product_id"/>
+            <column name="effective_from"/>
+        </createIndex>
+        <addForeignKeyConstraint baseTableName="m_overdraft_product_version" baseColumnNames="overdraft_product_id"
+                                 referencedTableName="m_overdraft_product" referencedColumnNames="id"
+                                 constraintName="fk_overdraft_version_product" onDelete="CASCADE"/>
+        <rollback>
+            <dropTable tableName="m_overdraft_product_version"/>
+        </rollback>
+    </changeSet>
+
+    <changeSet id="7" author="fineract">
+        <insert tableName="m_permission">
+            <column name="grouping" value="portfolio"/>
+            <column name="code" value="OVERDRAFT_PRODUCT_ADMIN"/>
+            <column name="entity_name" value="OVERDRAFT_PRODUCT"/>
+            <column name="action_name" value="ADMIN"/>
+            <column name="can_maker_checker" valueBoolean="false"/>
+        </insert>
+        <insert tableName="m_permission">
+            <column name="grouping" value="portfolio"/>
+            <column name="code" value="OVERDRAFT_PRODUCT_VIEW"/>
+            <column name="entity_name" value="OVERDRAFT_PRODUCT"/>
+            <column name="action_name" value="VIEW"/>
+            <column name="can_maker_checker" valueBoolean="false"/>
+        </insert>
+        <insert tableName="m_permission">
+            <column name="grouping" value="accounting"/>
+            <column name="code" value="FINANCE_ADMIN"/>
+            <column name="entity_name" value="OVERDRAFT_PRODUCT"/>
+            <column name="action_name" value="FINANCE"/>
+            <column name="can_maker_checker" valueBoolean="false"/>
+        </insert>
+        <rollback>
+            <delete tableName="m_permission">
+                <where>code in ('OVERDRAFT_PRODUCT_ADMIN','OVERDRAFT_PRODUCT_VIEW','FINANCE_ADMIN')</where>
+            </delete>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>
